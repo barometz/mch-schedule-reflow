@@ -6,8 +6,6 @@ use std::{
 };
 
 use curl::easy::Easy;
-use json;
-use tempfile;
 
 fn fetch_json_to(mut output: File) -> Result<(), curl::Error> {
     let mut request = Easy::new();
@@ -25,7 +23,7 @@ fn fetch_json() -> File {
     let mut file = tempfile::tempfile().unwrap();
     fetch_json_to(file.try_clone().unwrap()).unwrap();
     file.rewind().unwrap();
-    return file;
+    file
 }
 
 pub fn convert() {

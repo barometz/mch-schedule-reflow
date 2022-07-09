@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Duration};
+use chrono::{Duration, NaiveDateTime};
 
 struct Title(String);
 struct Room(String);
