@@ -1,3 +1,5 @@
+mod schedule;
+
 use std::{
     fs::File,
     io::{Read, Seek, Write},
