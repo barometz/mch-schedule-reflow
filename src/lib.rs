@@ -50,6 +50,12 @@ mod tests {
     }
 
     #[test]
+    fn parse() {
+        let mut file = File::open("test/mch-sched.json").unwrap();
+        super::parse(&mut file).unwrap();
+    }
+
+    #[test]
     fn convert() {
         super::convert();
     }
