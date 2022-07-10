@@ -200,6 +200,6 @@ pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Res
         output as &mut dyn Write,
     )?;
     handlebars.render_template_to_write(templates::EVENTS, &events, output as &mut dyn Write)?;
-
+    // TODO: link to overlapping events?
     Ok(())
 }
