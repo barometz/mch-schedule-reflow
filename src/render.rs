@@ -16,7 +16,7 @@ People      {{join people ", "}}
 Time        {{friendly_time start}}
 Duration    {{friendly_duration duration}}
 Date        {{friendly_date start}} (Day {{day}})
-Room        {{room}}
+Room        [{{room}}](#room-{{id room}})
 __________  ____
 
 {{/each}}
@@ -25,10 +25,10 @@ __________  ____
     pub const ROOM_DAY_EVENTS: &str = r#"
 # Rooms
 
-{{#each this as |s|}}
-## {{@key}}
+{{#each this}}
+## {{@key}} {#room-{{id @key}}}
 
-{{#each this as |n|}}
+{{#each this}}
 ### Day {{@key}} ({{friendly_date this.0.start}})
 
 {{#each this}}
@@ -46,6 +46,18 @@ mod helpers {
     use handlebars::{
         Context, Handlebars, Helper, HelperResult, JsonRender, Output, RenderContext,
     };
+
+    pub fn id(
+        h: &Helper,
+        _: &Handlebars,
+        _: &Context,
+        _: &mut RenderContext,
+        out: &mut dyn Output,
+    ) -> HelperResult {
+        let source = h.param(0).unwrap().render();
+        out.write(&source.replace(|c: char| !c.is_ascii_alphanumeric(), ""))?;
+        Ok(())
+    }
 
     pub fn join(
         h: &Helper,
@@ -136,6 +148,7 @@ fn make_room_day_event(events: &[schedule::Event]) -> RoomDayEvent {
 
 pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Result<()> {
     let mut handlebars = handlebars::Handlebars::new();
+    handlebars.register_helper("id", Box::new(helpers::id));
     handlebars.register_helper("join", Box::new(helpers::join));
     handlebars.register_helper("friendly_date", Box::new(helpers::friendly_date));
     handlebars.register_helper("friendly_time", Box::new(helpers::friendly_time));
