@@ -1,26 +1,29 @@
 use chrono::{Duration, NaiveDateTime};
 
-struct Title(String);
-struct Room(String);
-struct Track(String);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Title(pub String);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Room(pub String);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Track(pub String);
 
-struct Event {
+pub struct Event {
     /// Title of the event.
-    title: Title,
+    pub title: Title,
     /// Where the event takes place.
-    room: Room,
+    pub room: Room,
     /// What track the event is part of.
-    track: Track,
+    pub track: Track,
     /// The start of the event (local TZ, probably, it's fine)
-    start: NaiveDateTime,
+    pub start: NaiveDateTime,
     /// How long the event is scheduled for.
-    duration: Duration,
+    pub duration: Duration,
     /// The abstract.
-    brief: String,
+    pub brief: String,
     /// The event description.
-    description: String,
+    pub description: String,
     /// Names of the people speaking/guiding/working/shopping the event.
-    people: Vec<String>,
+    pub people: Vec<String>,
     /// The kind of event (talk, workshop, ...?)
-    event_type: String,
+    pub event_type: String,
 }
