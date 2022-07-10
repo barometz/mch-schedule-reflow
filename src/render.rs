@@ -3,14 +3,20 @@ use crate::schedule;
 use std::io::Write;
 
 mod templates {
-    pub const EVENT: &str = r#"__________  ____ 
-Title       {{title}}
+    pub const EVENTS: &str = r#"
+# Events
+
+{{#each this}}
+## {{title}}
+__________  ____ 
+People      {{join people ", "}}
 Time        {{friendly_time start}}
 Duration    {{friendly_duration duration}}
 Date        {{friendly_date start}}
 Room        {{room}}
 __________  ____
 
+{{/each}}
 "#;
 }
 
@@ -19,6 +25,30 @@ mod helpers {
     use handlebars::{
         Context, Handlebars, Helper, HelperResult, JsonRender, Output, RenderContext,
     };
+
+    pub fn join(
+        h: &Helper,
+        _: &Handlebars,
+        _: &Context,
+        _: &mut RenderContext,
+        out: &mut dyn Output,
+    ) -> HelperResult {
+        let elems = h.param(0).unwrap();
+        let separator = h.param(1).unwrap();
+        // it seems like there should be a better way than this
+        out.write(
+            &elems
+                .value()
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|j| j.render())
+                .collect::<Vec<String>>()
+                .join(&separator.render()),
+        )?;
+
+        Ok(())
+    }
 
     pub fn friendly_date(
         h: &Helper,
@@ -67,17 +97,14 @@ mod helpers {
 }
 
 pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Result<()> {
-    output.write_all("# Events\n".as_bytes())?;
     let mut handlebars = handlebars::Handlebars::new();
+    handlebars.register_helper("join", Box::new(helpers::join));
     handlebars.register_helper("friendly_date", Box::new(helpers::friendly_date));
     handlebars.register_helper("friendly_time", Box::new(helpers::friendly_time));
     handlebars.register_helper("friendly_duration", Box::new(helpers::friendly_duration));
-    handlebars.register_template_string("event", templates::EVENT)?;
+    handlebars.register_template_string("events", templates::EVENTS)?;
 
-    for event in events {
-        output.write_fmt(format_args!("\n## {}\n", event.title.0))?;
-        handlebars.render_to_write("event", &event, output as &mut dyn Write)?;
-    }
+    handlebars.render_to_write("events", &events, output as &mut dyn Write)?;
 
     Ok(())
 }
