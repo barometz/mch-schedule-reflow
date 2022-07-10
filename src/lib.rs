@@ -7,34 +7,35 @@ use std::{
 
 use curl::easy::Easy;
 
-fn fetch_json_to(mut output: File) -> Result<(), curl::Error> {
+const SCHEDULE_URL: &str = "https://program.mch2022.org/mch2021-2020/schedule/export/schedule.json";
+
+fn download_to(url: &str, mut output: File) -> anyhow::Result<()> {
     let mut request = Easy::new();
-    request.url("https://program.mch2022.org/mch2021-2020/schedule/export/schedule.json")?;
+    request.url(url)?;
     request.write_function(move |data| {
         // unpacking this to match write_function's error handling just obscures
         // write_all's error, so never mind that.
         output.write_all(data).unwrap();
         Ok(data.len())
     })?;
-    request.perform()
+    Ok(request.perform()?)
 }
 
-fn fetch_json() -> File {
-    let mut file = tempfile::tempfile().unwrap();
-    fetch_json_to(file.try_clone().unwrap()).unwrap();
-    file.rewind().unwrap();
-    file
+fn download(url: &str) -> anyhow::Result<File> {
+    let mut file = tempfile::tempfile()?;
+    download_to(url, file.try_clone().unwrap())?;
+    file.rewind()?;
+    Ok(file)
+}
+
+fn parse(file: &mut File) -> anyhow::Result<json::JsonValue> {
+    let mut body = String::new();
+    file.read_to_string(&mut body)?;
+    Ok(json::parse(&body)?)
 }
 
 pub fn convert() {
-    let schedule_json = {
-        let mut schedule_txt = String::new();
-        fetch_json()
-            .read_to_string(&mut schedule_txt)
-            .map(|_| json::parse(&schedule_txt))
-            .unwrap()
-            .unwrap()
-    };
+    let json_file = download(SCHEDULE_URL).and_then(|mut f| parse(&mut f));
 }
 
 #[cfg(test)]
@@ -43,7 +44,7 @@ mod tests {
     #[test]
     fn fetch_to() {
         let file = File::create("fetch_to.json").unwrap();
-        super::fetch_json_to(file.try_clone().unwrap()).unwrap();
+        super::download_to(super::SCHEDULE_URL, file.try_clone().unwrap()).unwrap();
         assert!(file.metadata().unwrap().st_size() > 1024);
         std::fs::remove_file("fetch_to.json").unwrap();
     }
