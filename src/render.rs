@@ -1,13 +1,10 @@
 use crate::schedule;
 
-use std::{
-    collections::{HashMap},
-    io::Write,
-};
+use std::{collections::HashMap, io::Write};
 
 mod templates {
     pub const EVENTS: &str = r#"
-# Events
+# Events {#events}
 
 {{#each this}}
 ## {{title}} {#{{unique_id}}}
@@ -15,7 +12,7 @@ __________  ____
 People      {{join people ", "}}
 Time        {{friendly_time start}}
 Duration    {{friendly_duration duration}}
-Date        {{friendly_date start}} (Day {{day}})
+Date        {{friendly_date start}} ([Day {{day}}](#day-{{day}}))
 Room        [{{room}}](#room-{{id room}})
 __________  ____
 
@@ -23,13 +20,13 @@ __________  ____
 "#;
 
     pub const ROOM_DAY_EVENTS: &str = r#"
-# Rooms
+# Rooms {#rooms}
 
 {{#each this}}
 ## {{@key}} {#room-{{id @key}}}
 
 {{#each this}}
-### Day {{@key}} ({{friendly_date this.0.start}})
+### Day {{@key}} ({{friendly_date this.0.start}}) {#room-{{id @../key}}-day-{{@key}}}
 
 {{#each this}}
 - {{friendly_time start}}: [{{title}}](#{{unique_id}})
@@ -38,6 +35,25 @@ __________  ____
 {{/each}} <!-- days -->
 
 {{/each}} <!-- rooms -->
+"#;
+
+    pub const DAY_ROOM_EVENTS: &str = r#"
+# Days {#days}
+
+{{#each this}}
+## Day {{@key}} {#day-{{@key}}}
+
+{{#each this}}
+### {{@key}} {#day-{{@../key}}-room-{{id @key}}}
+
+{{#each this}}
+- {{friendly_time start}}: [{{title}}](#{{unique_id}})
+{{/each}} <!-- events -->
+
+{{/each}} <!-- rooms -->
+
+{{/each}} <!-- days -->
+
 "#;
 }
 
@@ -130,7 +146,9 @@ mod helpers {
 }
 
 type DayEvent = HashMap<schedule::Day, Vec<schedule::Event>>;
+type RoomEvent = HashMap<schedule::Room, Vec<schedule::Event>>;
 type RoomDayEvent = HashMap<schedule::Room, DayEvent>;
+type DayRoomEvent = HashMap<schedule::Day, RoomEvent>;
 
 fn make_room_day_event(events: &[schedule::Event]) -> RoomDayEvent {
     let mut room_day_events = RoomDayEvent::new();
@@ -146,6 +164,18 @@ fn make_room_day_event(events: &[schedule::Event]) -> RoomDayEvent {
     room_day_events
 }
 
+fn make_day_room_event(events: &[schedule::Event]) -> DayRoomEvent {
+    let mut day_room_events = DayRoomEvent::new();
+    for event in events {
+        let room_events = day_room_events.entry(event.day).or_insert(RoomEvent::new());
+        room_events
+            .entry(event.room.clone())
+            .or_insert(Vec::<schedule::Event>::new())
+            .push(event.clone());
+    }
+    day_room_events
+}
+
 pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Result<()> {
     let mut handlebars = handlebars::Handlebars::new();
     handlebars.register_helper("id", Box::new(helpers::id));
@@ -154,15 +184,17 @@ pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Res
     handlebars.register_helper("friendly_time", Box::new(helpers::friendly_time));
     handlebars.register_helper("friendly_duration", Box::new(helpers::friendly_duration));
 
-    handlebars.register_template_string("events", templates::EVENTS)?;
-    handlebars.register_template_string("room-first", templates::ROOM_DAY_EVENTS)?;
-
-    handlebars.render_to_write("events", &events, output as &mut dyn Write)?;
-    handlebars.render_to_write(
-        "room-first",
+    handlebars.render_template_to_write(
+        templates::DAY_ROOM_EVENTS,
+        &make_day_room_event(events),
+        output as &mut dyn Write,
+    )?;
+    handlebars.render_template_to_write(
+        templates::ROOM_DAY_EVENTS,
         &make_room_day_event(&events),
         output as &mut dyn Write,
     )?;
+    handlebars.render_template_to_write(templates::EVENTS, &events, output as &mut dyn Write)?;
 
     Ok(())
 }
