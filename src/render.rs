@@ -1,12 +1,11 @@
 use crate::schedule;
 
-use std::{fs::File, io::Write};
+use std::io::Write;
 
 use serde::Serialize;
 
 mod templates {
-    pub const EVENT: &str = r#"
-__________  ____ 
+    pub const EVENT: &str = r#"__________  ____ 
 Title       {{title}}
 Date        {{weekday}}, {{month}} {{day_of_month}}
 Room        {{room}}
@@ -36,15 +35,14 @@ impl From<&schedule::Event> for Event {
     }
 }
 
-pub fn render(events: &[schedule::Event], output: &mut File) -> anyhow::Result<()> {
+pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Result<()> {
     output.write_all("# Events\n".as_bytes())?;
     let mut handlebars = handlebars::Handlebars::new();
     handlebars.register_template_string("event", templates::EVENT)?;
 
     for event in events {
         output.write_fmt(format_args!("\n## {}\n", event.title.0))?;
-        // The clone seems like it shouldn't be necessary here
-        handlebars.render_to_write("event", &Event::from(event), output.try_clone()?)?;
+        handlebars.render_to_write("event", &Event::from(event), output as &mut dyn Write)?;
     }
 
     Ok(())

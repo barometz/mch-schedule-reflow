@@ -30,11 +30,10 @@ fn download(url: &str) -> anyhow::Result<File> {
     Ok(file)
 }
 
-pub fn convert(output: &std::path::Path) -> anyhow::Result<()> {
+pub fn convert(output: &mut dyn Write) -> anyhow::Result<()> {
     let json_file = download(SCHEDULE_URL).and_then(|mut f| parse::file(&mut f))?;
     let events = parse::events(&json_file)?;
-    let mut output_file = File::create(output)?;
-    render::render(&events, &mut output_file)?;
+    render::render(&events, output)?;
     Ok(())
 }
 
@@ -52,7 +51,6 @@ mod tests {
 
     #[test]
     fn convert() {
-        let file = tempfile::NamedTempFile::new().unwrap();
-        super::convert(file.path()).unwrap();
+        super::convert(&mut tempfile::tempfile().unwrap()).unwrap();
     }
 }
