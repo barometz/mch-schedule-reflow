@@ -4,6 +4,9 @@ cover-image: Mch2022_wallpaper.png
 description: A reflowable schedule for MCH2022.
 ---
 
+Latest (HTML): <https://barometz.github.io/mch-schedule-reflow/schedule.html>
+Latest (ePub): <https://barometz.github.io/mch-schedule-reflow/schedule.epub>
+
 This is the schedule for [MCH2022](https://mch2022.org), this year's installment
 of the (almost) four-yearly hacker/maker/artist camp/festival/event that takes
 place in the Netherlands.
