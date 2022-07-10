@@ -161,7 +161,7 @@ fn make_room_day_event(events: &[schedule::Event]) -> RoomDayEvent {
     for event in events {
         let day_events = room_day_events
             .entry(event.room.clone())
-            .or_insert(DayEvent::new());
+            .or_insert_with(DayEvent::new);
         day_events
             .entry(event.day)
             .or_insert(Vec::<schedule::Event>::new())
@@ -173,7 +173,9 @@ fn make_room_day_event(events: &[schedule::Event]) -> RoomDayEvent {
 fn make_day_room_event(events: &[schedule::Event]) -> DayRoomEvent {
     let mut day_room_events = DayRoomEvent::new();
     for event in events {
-        let room_events = day_room_events.entry(event.day).or_insert(RoomEvent::new());
+        let room_events = day_room_events
+            .entry(event.day)
+            .or_insert_with(RoomEvent::new);
         room_events
             .entry(event.room.clone())
             .or_insert(Vec::<schedule::Event>::new())
@@ -200,7 +202,7 @@ pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Res
     )?;
     handlebars.render_template_to_write(
         templates::ROOM_DAY_EVENTS,
-        &make_room_day_event(&events),
+        &make_room_day_event(events),
         output as &mut dyn Write,
     )?;
     handlebars.render_template_to_write(templates::EVENTS, &events, output as &mut dyn Write)?;
