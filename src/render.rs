@@ -1,6 +1,6 @@
 use crate::schedule;
 
-use std::{collections::HashMap, io::Write};
+use std::{collections::HashMap, io::Write, path::PathBuf};
 
 mod templates {
     pub const EVENTS: &str = r#"
@@ -190,6 +190,9 @@ pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Res
     handlebars.register_helper("friendly_time", Box::new(helpers::friendly_time));
     handlebars.register_helper("friendly_duration", Box::new(helpers::friendly_duration));
 
+    handlebars.register_template_file("colophon", PathBuf::from("static/colophon.md"))?;
+
+    handlebars.render_to_write("colophon", &(), output as &mut dyn Write)?;
     handlebars.render_template_to_write(
         templates::DAY_ROOM_EVENTS,
         &make_day_room_event(events),
