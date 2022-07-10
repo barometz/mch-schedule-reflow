@@ -1,11 +1,11 @@
 use crate::schedule;
 
-use chrono::{Duration, NaiveDateTime, NaiveTime};
+use chrono::{Duration, NaiveTime, DateTime, FixedOffset};
 
 use std::{fs::File, io::Read};
 
-fn parse_datetime(input: &str) -> anyhow::Result<NaiveDateTime> {
-    Ok(chrono::DateTime::parse_from_rfc3339(input)?.naive_local())
+fn parse_datetime(input: &str) -> anyhow::Result<DateTime<FixedOffset>> {
+    Ok(chrono::DateTime::parse_from_rfc3339(input)?)
 }
 
 fn parse_duration_hhmm(input: &str) -> anyhow::Result<Duration> {
