@@ -4,7 +4,8 @@ mod schedule;
 
 use std::{
     fs::File,
-    io::{Seek, Write}
+    io::{Seek, Write},
+    path::PathBuf,
 };
 
 use curl::easy::Easy;
@@ -30,13 +31,9 @@ fn download(url: &str) -> anyhow::Result<File> {
     Ok(file)
 }
 
-fn convert_file(json_file: &mut File) -> anyhow::Result<()> {
-    let events = parse::file(json_file).and_then(|j| parse::events(&j))?;
-    let mut intermediate = tempfile::NamedTempFile::new()?;
-    render::render(&events, &mut intermediate)?;
+fn set_up_pandoc(input: &PathBuf) -> pandoc::Pandoc {
     let mut pandoc = pandoc::new();
-    pandoc.add_input(intermediate.path());
-    pandoc.set_output(pandoc::OutputKind::File("schedule.epub".into()));
+    pandoc.add_input(input);
     pandoc.set_input_format(
         pandoc::InputFormat::Markdown,
         vec![
@@ -44,10 +41,34 @@ fn convert_file(json_file: &mut File) -> anyhow::Result<()> {
             pandoc::MarkdownExtension::SimpleTables,
         ],
     );
-    pandoc.set_output_format(pandoc::OutputFormat::Epub3, vec![]);
     pandoc.set_toc();
     pandoc.add_option(pandoc::PandocOption::Standalone);
-    match pandoc.execute() {
+    pandoc
+}
+
+fn to_epub(input: &PathBuf) -> anyhow::Result<()> {
+    let mut pandoc = set_up_pandoc(input);
+    pandoc.set_output(pandoc::OutputKind::File("schedule.epub".into()));
+    pandoc.set_output_format(pandoc::OutputFormat::Epub3, vec![]);
+    pandoc.execute()?;
+    Ok(())
+}
+
+fn to_html(input: &PathBuf) -> anyhow::Result<()> {
+    let mut pandoc = set_up_pandoc(input);
+    pandoc.set_output(pandoc::OutputKind::File("schedule.html".into()));
+    pandoc.set_output_format(pandoc::OutputFormat::Html5, vec![]);
+    pandoc.execute()?;
+    Ok(())
+}
+
+fn convert_file(json_file: &mut File) -> anyhow::Result<()> {
+    let events = parse::file(json_file).and_then(|j| parse::events(&j))?;
+    let mut intermediate = tempfile::NamedTempFile::new()?;
+    render::render(&events, &mut intermediate)?;
+
+    let md_path: PathBuf = intermediate.path().into();
+    match to_epub(&md_path).and(to_html(&md_path)) {
         Ok(_) => (),
         Err(e) => {
             eprintln!(
