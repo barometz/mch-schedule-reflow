@@ -14,7 +14,12 @@ Time        {{friendly_time start}}
 Duration    {{friendly_duration duration}}
 Date        {{friendly_date start}} ([Day {{day}}](#day-{{day}}))
 Room        [{{room}}](#room-{{id room}})
+URL         <{{url}}>
 __________  ____
+
+{{brief}}
+
+{{description}}
 
 {{/each}}
 "#;
