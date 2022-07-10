@@ -1,3 +1,3 @@
 fn main() {
-    mch_schedule_reflow::convert();
+    mch_schedule_reflow::convert().unwrap();
 }

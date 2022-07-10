@@ -44,7 +44,10 @@ fn parse_duration_hhmm(input: &str) -> anyhow::Result<Duration> {
 }
 
 fn parse_people(input: &json::JsonValue) -> Vec<String> {
-    input.members().map(|j| j["public_name"].to_string()).collect()
+    input
+        .members()
+        .map(|j| j["public_name"].to_string())
+        .collect()
 }
 
 fn parse_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
@@ -63,11 +66,24 @@ fn parse_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
 }
 
 fn extract_events(input: &json::JsonValue) -> anyhow::Result<Vec<schedule::Event>> {
-    unimplemented!()
+    let mut all_events = Vec::<schedule::Event>::new();
+    let conference = &input["schedule"]["conference"];
+
+    for day in conference["days"].members() {
+        for (_room, events) in day["rooms"].entries() {
+            for event in events.members() {
+                all_events.push(parse_event(event)?);
+            }
+        }
+    }
+
+    Ok(all_events)
 }
 
 pub fn convert() -> anyhow::Result<()> {
     let json_file = download(SCHEDULE_URL).and_then(|mut f| parse(&mut f))?;
+    let events = extract_events(&json_file);
+    dbg!(events.unwrap().len());
     Ok(())
 }
 
@@ -126,18 +142,28 @@ mod tests {
             schedule::Title(String::from("⚠️ May Contain Hackers 2022 Opening"))
         );
         assert_eq!(event.room, schedule::Room(String::from("Abacus  🧮")));
-        assert_eq!(event.track, schedule::Track(String::from("MCH2022 Curated content")));
+        assert_eq!(
+            event.track,
+            schedule::Track(String::from("MCH2022 Curated content"))
+        );
         assert_eq!(event.duration, chrono::Duration::minutes(50));
         assert_eq!(
             event.start,
             chrono::NaiveDateTime::parse_from_str("2022-07-22T17:00:00", "%Y-%m-%dT%H:%M:%S")
                 .unwrap()
         );
-        assert!(event.brief.starts_with("⚠️ Warning! This talk may contain hackers."));
-        assert!(event.description.starts_with("This talk serves as an introduction to the camp."));
+        assert!(event
+            .brief
+            .starts_with("⚠️ Warning! This talk may contain hackers."));
+        assert!(event
+            .description
+            .starts_with("This talk serves as an introduction to the camp."));
         assert_eq!(event.people, vec![String::from("Elger \"Stitch\" Jonker")]);
         assert_eq!(event.event_type, String::from("Talk"));
-        assert_eq!(event.url, String::from("https://program.mch2022.org/mch2021-2020/talk/JBNXAX/"));
+        assert_eq!(
+            event.url,
+            String::from("https://program.mch2022.org/mch2021-2020/talk/JBNXAX/")
+        );
     }
 
     #[test]
@@ -148,6 +174,6 @@ mod tests {
 
     #[test]
     fn convert() {
-        super::convert();
+        super::convert().unwrap();
     }
 }
