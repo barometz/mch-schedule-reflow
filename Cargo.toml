@@ -9,5 +9,7 @@ edition = "2021"
 anyhow = "1.0.58"
 chrono = "0.4.19"
 curl = "0.4.43"
+handlebars = "4.3.1"
 json = "0.12.4"
+serde = { version = "1.0.138", features = ["derive"] }
 tempfile = "3.3.0"

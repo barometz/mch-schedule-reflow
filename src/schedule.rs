@@ -1,11 +1,14 @@
 use chrono::{Duration, NaiveDateTime};
+use serde::Serialize;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct Title(pub String);
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct Room(pub String);
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct Track(pub String);
+
+// TODO: need day field in Event, because a 1AM event is on the schedule for yesterday
 
 pub struct Event {
     /// Title of the event.

@@ -1,4 +1,5 @@
 mod parse;
+mod render;
 mod schedule;
 
 use std::{
@@ -29,10 +30,11 @@ fn download(url: &str) -> anyhow::Result<File> {
     Ok(file)
 }
 
-pub fn convert() -> anyhow::Result<()> {
+pub fn convert(output: &std::path::Path) -> anyhow::Result<()> {
     let json_file = download(SCHEDULE_URL).and_then(|mut f| parse::file(&mut f))?;
-    let events = parse::events(&json_file);
-    dbg!(events.unwrap().len());
+    let events = parse::events(&json_file)?;
+    let mut output_file = File::create(output)?;
+    render::render(&events, &mut output_file)?;
     Ok(())
 }
 
@@ -50,6 +52,7 @@ mod tests {
 
     #[test]
     fn convert() {
-        super::convert().unwrap();
+        let file = tempfile::NamedTempFile::new().unwrap();
+        super::convert(file.path()).unwrap();
     }
 }
