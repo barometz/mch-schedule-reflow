@@ -7,12 +7,12 @@ mod templates {
 # Events
 
 {{#each this}}
-## {{title}}
+## {{title}} {#{{unique_id}}}
 __________  ____ 
 People      {{join people ", "}}
 Time        {{friendly_time start}}
 Duration    {{friendly_duration duration}}
-Date        {{friendly_date start}}
+Date        {{friendly_date start}} (Day {{day}})
 Room        {{room}}
 __________  ____
 

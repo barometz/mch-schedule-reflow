@@ -8,8 +8,8 @@ pub struct Title(pub String);
 pub struct Room(pub String);
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct Track(pub String);
-
-// TODO: need day field in Event, because a 1AM event is on the schedule for yesterday
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct Day(pub i8);
 
 #[serde_as]
 #[derive(Serialize)]
@@ -20,10 +20,12 @@ pub struct Event {
     pub room: Room,
     /// What track the event is part of.
     pub track: Track,
+    /// The day the event is listed under (2AM is still the previous day)
+    pub day: Day,
     /// The start of the event
     pub start: DateTime<FixedOffset>,
     /// How long the event is scheduled for.
-    #[serde_as(as = "DurationSeconds<String>")]
+    #[serde_as(as = "DurationSeconds<i64>")]
     pub duration: Duration,
     /// The abstract.
     pub brief: String,
@@ -35,4 +37,6 @@ pub struct Event {
     pub event_type: String,
     /// A link to the event description on the website.
     pub url: String,
+    /// The guid in the source data; cheap source of header IDs.
+    pub unique_id: String,
 }

@@ -19,11 +19,12 @@ fn parse_people(input: &json::JsonValue) -> Vec<String> {
         .collect()
 }
 
-fn parse_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
+fn parse_event(input: &json::JsonValue, day: schedule::Day) -> anyhow::Result<schedule::Event> {
     Ok(schedule::Event {
         title: schedule::Title(input["title"].to_string()),
         room: schedule::Room(input["room"].to_string()),
         track: schedule::Track(input["track"].to_string()),
+        day: day,
         start: parse_datetime(&input["date"].to_string())?,
         duration: parse_duration_hhmm(&input["duration"].to_string())?,
         brief: input["abstract"].to_string(),
@@ -31,6 +32,7 @@ fn parse_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
         people: parse_people(&input["persons"]),
         event_type: input["type"].to_string(),
         url: input["url"].to_string(),
+        unique_id: input["guid"].to_string(),
     })
 }
 
@@ -45,9 +47,10 @@ pub fn events(input: &json::JsonValue) -> anyhow::Result<Vec<schedule::Event>> {
     let conference = &input["schedule"]["conference"];
 
     for day in conference["days"].members() {
+        let day_index = schedule::Day(day["index"].as_i8().unwrap_or(0));
         for (_room, events) in day["rooms"].entries() {
             for event in events.members() {
-                all_events.push(parse_event(event)?);
+                all_events.push(parse_event(event, day_index)?);
             }
         }
     }
@@ -96,7 +99,7 @@ mod tests {
             "answers": []
         }
 "#).unwrap();
-        let event = super::parse_event(&event_json).unwrap();
+        let event = super::parse_event(&event_json, schedule::Day(0)).unwrap();
         assert_eq!(
             event.title,
             schedule::Title(String::from("⚠️ May Contain Hackers 2022 Opening"))
@@ -109,7 +112,7 @@ mod tests {
         assert_eq!(event.duration, chrono::Duration::minutes(50));
         assert_eq!(
             event.start,
-            chrono::NaiveDateTime::parse_from_str("2022-07-22T17:00:00", "%Y-%m-%dT%H:%M:%S")
+            chrono::DateTime::parse_from_str("2022-07-22T17:00:00+0200", "%Y-%m-%dT%H:%M:%S%z")
                 .unwrap()
         );
         assert!(event
