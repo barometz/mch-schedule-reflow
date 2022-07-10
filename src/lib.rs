@@ -47,7 +47,7 @@ fn parse_people(input: &json::JsonValue) -> Vec<String> {
     input.members().map(|j| j["public_name"].to_string()).collect()
 }
 
-fn extract_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
+fn parse_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
     Ok(schedule::Event {
         title: schedule::Title(input["title"].to_string()),
         room: schedule::Room(input["room"].to_string()),
@@ -120,7 +120,7 @@ mod tests {
             "answers": []
         }
 "#).unwrap();
-        let event = super::extract_event(&event_json).unwrap();
+        let event = super::parse_event(&event_json).unwrap();
         assert_eq!(
             event.title,
             schedule::Title(String::from("⚠️ May Contain Hackers 2022 Opening"))
