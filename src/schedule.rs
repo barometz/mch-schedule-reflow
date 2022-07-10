@@ -26,4 +26,6 @@ pub struct Event {
     pub people: Vec<String>,
     /// The kind of event (talk, workshop, ...?)
     pub event_type: String,
+    /// A link to the event description on the website.
+    pub url: String,
 }

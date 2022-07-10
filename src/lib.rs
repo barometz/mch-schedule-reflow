@@ -44,7 +44,7 @@ fn parse_duration_hhmm(input: &str) -> anyhow::Result<Duration> {
 }
 
 fn parse_people(input: &json::JsonValue) -> Vec<String> {
-    input.members().map(|j| j.to_string()).collect()
+    input.members().map(|j| j["public_name"].to_string()).collect()
 }
 
 fn extract_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
@@ -58,6 +58,7 @@ fn extract_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
         description: input["description"].to_string(),
         people: parse_people(&input["persons"]),
         event_type: input["type"].to_string(),
+        url: input["url"].to_string(),
     })
 }
 
@@ -122,14 +123,21 @@ mod tests {
         let event = super::extract_event(&event_json).unwrap();
         assert_eq!(
             event.title,
-            schedule::Title("\u{26a0}\u{fe0f} May Contain Hackers 2022 Opening".to_string())
+            schedule::Title(String::from("⚠️ May Contain Hackers 2022 Opening"))
         );
+        assert_eq!(event.room, schedule::Room(String::from("Abacus  🧮")));
+        assert_eq!(event.track, schedule::Track(String::from("MCH2022 Curated content")));
         assert_eq!(event.duration, chrono::Duration::minutes(50));
         assert_eq!(
             event.start,
             chrono::NaiveDateTime::parse_from_str("2022-07-22T17:00:00", "%Y-%m-%dT%H:%M:%S")
                 .unwrap()
         );
+        assert!(event.brief.starts_with("⚠️ Warning! This talk may contain hackers."));
+        assert!(event.description.starts_with("This talk serves as an introduction to the camp."));
+        assert_eq!(event.people, vec![String::from("Elger \"Stitch\" Jonker")]);
+        assert_eq!(event.event_type, String::from("Talk"));
+        assert_eq!(event.url, String::from("https://program.mch2022.org/mch2021-2020/talk/JBNXAX/"));
     }
 
     #[test]
