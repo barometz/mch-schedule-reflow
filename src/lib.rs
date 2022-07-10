@@ -5,6 +5,7 @@ use std::{
     io::{Read, Seek, Write},
 };
 
+use chrono::{Duration, NaiveDateTime, NaiveTime};
 use curl::easy::Easy;
 
 const SCHEDULE_URL: &str = "https://program.mch2022.org/mch2021-2020/schedule/export/schedule.json";
@@ -34,17 +35,29 @@ fn parse(file: &mut File) -> anyhow::Result<json::JsonValue> {
     Ok(json::parse(&body)?)
 }
 
+fn parse_datetime(input: &str) -> anyhow::Result<NaiveDateTime> {
+    Ok(chrono::DateTime::parse_from_rfc3339(input)?.naive_local())
+}
+
+fn parse_duration_hhmm(input: &str) -> anyhow::Result<Duration> {
+    Ok(NaiveTime::parse_from_str(input, "%H:%M")? - NaiveTime::from_hms(0, 0, 0))
+}
+
+fn parse_people(input: &json::JsonValue) -> Vec<String> {
+    input.members().map(|j| j.to_string()).collect()
+}
+
 fn extract_event(input: &json::JsonValue) -> anyhow::Result<schedule::Event> {
     Ok(schedule::Event {
         title: schedule::Title(input["title"].to_string()),
         room: schedule::Room(input["room"].to_string()),
         track: schedule::Track(input["track"].to_string()),
-        start: chrono::NaiveDateTime::from_timestamp(0, 0),
-        duration: chrono::Duration::zero(),
+        start: parse_datetime(&input["date"].to_string())?,
+        duration: parse_duration_hhmm(&input["duration"].to_string())?,
         brief: input["abstract"].to_string(),
         description: input["description"].to_string(),
-        people: input["persons"].entries().map(|j| { j.0.to_string()} ).collect(),
-        event_type: input["type"].to_string()
+        people: parse_people(&input["persons"]),
+        event_type: input["type"].to_string(),
     })
 }
 
@@ -110,6 +123,12 @@ mod tests {
         assert_eq!(
             event.title,
             schedule::Title("\u{26a0}\u{fe0f} May Contain Hackers 2022 Opening".to_string())
+        );
+        assert_eq!(event.duration, chrono::Duration::minutes(50));
+        assert_eq!(
+            event.start,
+            chrono::NaiveDateTime::parse_from_str("2022-07-22T17:00:00", "%Y-%m-%dT%H:%M:%S")
+                .unwrap()
         );
     }
 
