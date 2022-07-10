@@ -1,6 +1,6 @@
 ---
 title: MCH2022 schedule
-cover-image: static/Mch2022_wallpaper.png
+cover-image: Mch2022_wallpaper.png
 description: A reflowable schedule for MCH2022.
 ---
 

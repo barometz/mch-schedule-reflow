@@ -41,7 +41,6 @@ fn set_up_pandoc(input: &PathBuf) -> pandoc::Pandoc {
             pandoc::MarkdownExtension::SimpleTables,
         ],
     );
-    pandoc.set_toc();
     pandoc.add_option(pandoc::PandocOption::Standalone);
     pandoc
 }
@@ -58,6 +57,7 @@ fn to_html(input: &PathBuf) -> anyhow::Result<()> {
     let mut pandoc = set_up_pandoc(input);
     pandoc.set_output(pandoc::OutputKind::File("schedule.html".into()));
     pandoc.set_output_format(pandoc::OutputFormat::Html5, vec![]);
+    pandoc.set_toc();
     pandoc.execute()?;
     Ok(())
 }
