@@ -1,6 +1,9 @@
 use crate::schedule;
 
-use std::io::Write;
+use std::{
+    collections::{HashMap},
+    io::Write,
+};
 
 mod templates {
     pub const EVENTS: &str = r#"
@@ -17,6 +20,24 @@ Room        {{room}}
 __________  ____
 
 {{/each}}
+"#;
+
+    pub const ROOM_DAY_EVENTS: &str = r#"
+# Rooms
+
+{{#each this as |s|}}
+## {{@key}}
+
+{{#each this as |n|}}
+### Day {{@key}} ({{friendly_date this.0.start}})
+
+{{#each this}}
+- {{friendly_time start}}: [{{title}}](#{{unique_id}})
+{{/each}} <!-- events -->
+
+{{/each}} <!-- days -->
+
+{{/each}} <!-- rooms -->
 "#;
 }
 
@@ -74,7 +95,7 @@ mod helpers {
         let param = h.param(0).unwrap();
         // There's probably a more work-with-serde way to do this, but This Is Fine
         let unrendered = DateTime::parse_from_rfc3339(&param.value().render()).unwrap();
-        out.write(&unrendered.format("%H:%M (%z)").to_string())?;
+        out.write(&unrendered.format("%H:%M").to_string())?;
         Ok(())
     }
 
@@ -96,15 +117,39 @@ mod helpers {
     }
 }
 
+type DayEvent = HashMap<schedule::Day, Vec<schedule::Event>>;
+type RoomDayEvent = HashMap<schedule::Room, DayEvent>;
+
+fn make_room_day_event(events: &[schedule::Event]) -> RoomDayEvent {
+    let mut room_day_events = RoomDayEvent::new();
+    for event in events {
+        let day_events = room_day_events
+            .entry(event.room.clone())
+            .or_insert(DayEvent::new());
+        day_events
+            .entry(event.day)
+            .or_insert(Vec::<schedule::Event>::new())
+            .push(event.clone());
+    }
+    room_day_events
+}
+
 pub fn render(events: &[schedule::Event], output: &mut dyn Write) -> anyhow::Result<()> {
     let mut handlebars = handlebars::Handlebars::new();
     handlebars.register_helper("join", Box::new(helpers::join));
     handlebars.register_helper("friendly_date", Box::new(helpers::friendly_date));
     handlebars.register_helper("friendly_time", Box::new(helpers::friendly_time));
     handlebars.register_helper("friendly_duration", Box::new(helpers::friendly_duration));
+
     handlebars.register_template_string("events", templates::EVENTS)?;
+    handlebars.register_template_string("room-first", templates::ROOM_DAY_EVENTS)?;
 
     handlebars.render_to_write("events", &events, output as &mut dyn Write)?;
+    handlebars.render_to_write(
+        "room-first",
+        &make_room_day_event(&events),
+        output as &mut dyn Write,
+    )?;
 
     Ok(())
 }

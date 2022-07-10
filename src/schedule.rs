@@ -2,17 +2,17 @@ use chrono::{DateTime, Duration, FixedOffset};
 use serde::Serialize;
 use serde_with::{serde_as, DurationSeconds};
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct Title(pub String);
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct Room(pub String);
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct Track(pub String);
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct Day(pub i8);
 
 #[serde_as]
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Event {
     /// Title of the event.
     pub title: Title,
