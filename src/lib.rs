@@ -4,7 +4,7 @@ mod schedule;
 
 use std::{
     fs::File,
-    io::{Seek, Write},
+    io::{Seek, Write}
 };
 
 use curl::easy::Easy;
@@ -30,10 +30,40 @@ fn download(url: &str) -> anyhow::Result<File> {
     Ok(file)
 }
 
-pub fn convert(output: &mut dyn Write) -> anyhow::Result<()> {
-    let json_file = download(SCHEDULE_URL).and_then(|mut f| parse::file(&mut f))?;
-    let events = parse::events(&json_file)?;
-    render::render(&events, output)?;
+fn convert_file(json_file: &mut File) -> anyhow::Result<()> {
+    let events = parse::file(json_file).and_then(|j| parse::events(&j))?;
+    let mut intermediate = tempfile::NamedTempFile::new()?;
+    render::render(&events, &mut intermediate)?;
+    let mut pandoc = pandoc::new();
+    pandoc.add_input(intermediate.path());
+    pandoc.set_output(pandoc::OutputKind::File("schedule.epub".into()));
+    pandoc.set_input_format(
+        pandoc::InputFormat::Markdown,
+        vec![
+            pandoc::MarkdownExtension::HeaderAttributes,
+            pandoc::MarkdownExtension::SimpleTables,
+        ],
+    );
+    pandoc.set_output_format(pandoc::OutputFormat::Epub3, vec![]);
+    pandoc.set_toc();
+    pandoc.add_option(pandoc::PandocOption::Standalone);
+    match pandoc.execute() {
+        Ok(_) => (),
+        Err(e) => {
+            eprintln!(
+                "Failed to write pandoc output. Intermediate file is at {}. Error: {}",
+                intermediate.path().display(),
+                e
+            );
+            intermediate.keep()?;
+            Err(e)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn convert() -> anyhow::Result<()> {
+    download(SCHEDULE_URL).and_then(|mut f| convert_file(&mut f))?;
     Ok(())
 }
 
@@ -50,7 +80,12 @@ mod tests {
     }
 
     #[test]
+    fn convert_local() {
+        super::convert_file(&mut File::open("test/mch-sched.json").unwrap()).unwrap();
+    }
+
+    #[test]
     fn convert() {
-        super::convert(&mut tempfile::tempfile().unwrap()).unwrap();
+        super::convert().unwrap();
     }
 }
