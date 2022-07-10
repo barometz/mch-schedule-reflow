@@ -1,6 +1,6 @@
 use crate::schedule;
 
-use chrono::{Duration, NaiveTime, DateTime, FixedOffset};
+use chrono::{DateTime, Duration, FixedOffset, NaiveTime};
 
 use std::{fs::File, io::Read};
 
@@ -24,7 +24,7 @@ fn parse_event(input: &json::JsonValue, day: schedule::Day) -> anyhow::Result<sc
         title: schedule::Title(input["title"].to_string()),
         room: schedule::Room(input["room"].to_string()),
         track: schedule::Track(input["track"].to_string()),
-        day: day,
+        day,
         start: parse_datetime(&input["date"].to_string())?,
         duration: parse_duration_hhmm(&input["duration"].to_string())?,
         brief: input["abstract"].to_string(),
