@@ -10,7 +10,7 @@ use std::{
 
 use curl::easy::Easy;
 
-const SCHEDULE_URL: &str = "https://program.mch2022.org/mch2021-2020/schedule/export/schedule.json";
+const SCHEDULE_URL: &str = "https://program.mch2022.org/mch2022/schedule/export/schedule.json";
 
 fn download_to(url: &str, mut output: File) -> anyhow::Result<()> {
     let mut request = Easy::new();
@@ -63,7 +63,16 @@ fn to_html(input: &PathBuf) -> anyhow::Result<()> {
 }
 
 fn convert_file(json_file: &mut File) -> anyhow::Result<()> {
-    let events = parse::file(json_file).and_then(|j| parse::events(&j))?;
+    let events = match parse::file(json_file) {
+        Ok(j) => parse::events(&j)?,
+        Err(e) => {
+            eprintln!("Failed to parse json. File copied to bad.json.");
+            let mut copy = File::create("bad.json")?;
+            std::io::copy(json_file, &mut copy)?;
+            Err(e)?
+        }
+    };
+
     let mut intermediate = tempfile::NamedTempFile::new()?;
     render::render(&events, &mut intermediate)?;
 
